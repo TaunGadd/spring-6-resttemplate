@@ -5,6 +5,8 @@ import org.springframework.boot.autoconfigure.web.client.RestTemplateBuilderConf
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.oauth2.client.*;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.web.util.DefaultUriBuilderFactory;
 
 @Configuration
@@ -14,11 +16,23 @@ public class RestTemplateBuilderConfig {
     String rootUrl;
 
     @Bean
-    RestTemplateBuilder restTemplateBuilder(RestTemplateBuilderConfigurer restTemplateBuilderConfigurer) {
+    OAuth2AuthorizedClientManager auth2AuthorizedClientManager(ClientRegistrationRepository clientRegistrationRepository, OAuth2AuthorizedClientService oAuth2AuthorizedClientService) {
+        var authorizedClientProvider = OAuth2AuthorizedClientProviderBuilder.builder()
+                .clientCredentials()
+                .build();
+
+        var authorizedClientManager = new AuthorizedClientServiceOAuth2AuthorizedClientManager(clientRegistrationRepository, oAuth2AuthorizedClientService);
+        authorizedClientManager.setAuthorizedClientProvider(authorizedClientProvider);
+        return authorizedClientManager;
+    }
+
+    @Bean
+    RestTemplateBuilder restTemplateBuilder(RestTemplateBuilderConfigurer restTemplateBuilderConfigurer, OAuthClientInterceptor interceptor) {
 
         assert rootUrl != null;
 
         return restTemplateBuilderConfigurer.configure(new RestTemplateBuilder())
+                .additionalInterceptors(interceptor)
                 .uriTemplateHandler(new DefaultUriBuilderFactory(rootUrl));
     }
 }
